@@ -2,6 +2,8 @@ var mysql = require("mysql");
 var inquirer = require("inquirer");
 require("dotenv").config();
 
+var divider = "\n------------------------------------------";
+
 // create the connection information for the sql database
 var connection = mysql.createConnection({
   host: "localhost",
@@ -22,7 +24,6 @@ connection.connect(function(err) {
   if (err) throw err;
   // run the start function after the connection is made to prompt the user
   readProducts();
-  purchaseProducts();
 });
 
 function purchaseProducts() {
@@ -42,11 +43,13 @@ function purchaseProducts() {
 };
 
 function readProducts() {
-    console.log("Selecting all products...\n");
     connection.query("SELECT * FROM products", function(err, res) {
       if (err) throw err;
-      // Log all results of the SELECT statement
-      console.log(res);
+      console.log("\nPRODUCTS" + divider);
+      for (i=0; i < res.length; i++) {
+          console.log("Item #" + res[i].item_ID + ": " + res[i].product_name + " - $" + res[i].price);
+      };
+      console.log("\n ");
       connection.end();
     });
-  }
+  };
