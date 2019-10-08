@@ -1,7 +1,5 @@
-CREATE DATABASE bamazon_DB;
-
 DROP DATABASE IF EXISTS bamazon_db;
-
+CREATE DATABASE bamazon_DB;
 USE bamazon_DB;
 
 CREATE TABLE products (
