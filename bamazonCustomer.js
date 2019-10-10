@@ -20,36 +20,70 @@ var connection = mysql.createConnection({
 });
 
 // connect to the mysql server and sql database
-connection.connect(function(err) {
+connection.connect(function (err) {
   if (err) throw err;
-  // run the start function after the connection is made to prompt the user
+  //List all the products available for purchase
   readProducts();
+  //Initiate the questions for a user to make a purchase
+  purchaseProducts();
 });
 
 function purchaseProducts() {
-    inquirer.prompt({
-        name: "item",
-        message: "What item would you like to purchase?",
-        type: "list",
-        choices: ["Arrows", "Blue Fire", "Blue Potion", "Bombchus", "Bombs", "Bug", "Deku Nuts", "Deku Seeds", "Deku Shield", "Deku Stick", "Fairy", "Fish", "Goron Tunic", "Green Potion", "Heart", "Hylian Shield", "Lon Lon Milk", "Poe", "Red Potion", "Zora Tunic"]
-    }, 
+  inquirer.prompt([
     {
-        name: "quantity",
-        message: "How many would you like to purchase?",
-        type: "number"
-    }).then(function(res){
-        connection.query();
-    });
+      name: "item",
+      message: "Please enter the ID# of the item you wish to purchase.",
+      type: "number",
+    },
+    {
+      name: "quantity",
+      message: "How many would you like to purchase?",
+      type: "number",
+    }
+  ]).then(function (answer) {
+    console.log(connection.query("SELECT price FROM products WHERE ?",
+    {
+      item_ID: answer.ID
+    }));
+    console.log("Item ID #: " + answer.item);
+    console.log("Quantity: " + answer.quantity);
+    // validate(answer.item, answer.quantity);
+    console.log("Inventory: " + (50 - answer.quantity));
+    connection.query(
+      "UPDATE products SET ? WHERE ?",
+      [{
+        stock_quantity: --answer.quantity
+      },
+      {
+        item_ID: answer.item
+      }],
+      function (error) {
+        if (error) throw err;
+        console.log("Purchase successful!");
+      });
+    connection.end();
+  });
 };
 
 function readProducts() {
-    connection.query("SELECT * FROM products", function(err, res) {
-      if (err) throw err;
-      console.log("\nPRODUCTS" + divider);
-      for (i=0; i < res.length; i++) {
-          console.log("Item #" + res[i].item_ID + ": " + res[i].product_name + " - $" + res[i].price);
-      };
-      console.log("\n ");
-      connection.end();
+  connection.query("SELECT * FROM products", function (err, res) {
+    if (err) throw err;
+    console.log("\nPRODUCTS" + divider);
+    for (i = 0; i < res.length; i++) {
+      console.log("ID #" + res[i].item_ID + ": " + res[i].product_name + " - $" + res[i].price);
+    };
+    console.log("\n ");
+  });
+};
+
+function validate(id, amount) {
+  inventory = connection.query(
+    "SELECT stock_quantity FROM products WHERE item_ID ?",
+    {
+      item_ID: id
     });
-  };
+  if (amount <= inventory) {
+    console.log("Insufficient quantity");
+    break;
+  }
+};
