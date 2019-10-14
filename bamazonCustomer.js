@@ -4,23 +4,24 @@ require("dotenv").config();
 
 var divider = "\n------------------------------------------";
 
-// create the connection information for the sql database
+// CONNECTION INFORMATION
 var connection = mysql.createConnection({
   host: "localhost",
 
-  // Your port; if not 3306
+  // PORT
   port: 3306,
 
-  // Your username
+  // USERNAME
   user: "root",
 
-  // Your password
+  // PASSWORD
   password: process.env.PASSWORD,
+  // DATABASE
   database: process.env.DATABASE
 });
 
-// connect to the mysql server and sql database
-connection.connect(function (err) {
+// INITIALIZE CONNECTION, RUN PROGRAM
+connection.connect(function start (err) {
   if (err) throw err;
   //List all the products available for purchase
   readProducts();
@@ -28,7 +29,18 @@ connection.connect(function (err) {
   purchaseProducts();
 });
 
+
+// FUNCTIONS DEFINED
+function start (err) {
+  if (err) throw err;
+  //List all the products available for purchase
+  readProducts();
+  //Initiate the questions for a user to make a purchase
+  purchaseProducts();
+}
+
 function purchaseProducts() {
+  //Serves question to user for inputting product purchase details
   inquirer.prompt([
     {
       name: "item",
@@ -41,24 +53,39 @@ function purchaseProducts() {
       type: "number",
     }
   ]).then(function (answer) {
-    console.log(connection.query("SELECT price FROM products WHERE ?",
-    {
-      item_ID: answer.ID
-    }));
+    connection.query("SELECT price FROM products WHERE ?",
+      {
+        item_ID: answer.item
+      });
     console.log("Item ID #: " + answer.item);
     console.log("Quantity: " + answer.quantity);
-    // validate(answer.item, answer.quantity);
-    console.log("Inventory: " + (50 - answer.quantity));
+
+    //Verifies if quanity requested exceeds amount in store
+    productInventory = checkInventory(answer.item);
+    if(productInventory < answer.quantity) {
+      console.log("Insufficient quantity!");
+      start(err);
+    };
+
+    //Checks the price of that item, then calculates the total cost of the transaction
+    productPrice = checkPrice(answer.item);
+    transactionCost = (productPrice * answer.quantity);
+    console.log("Product Price   : " + productPrice);
+    console.log("Quanity         : " + answer.quantity);
+    console.log("______________________________");
+    console.log("Transaction Cost: " + transactionCost);
+
     connection.query(
       "UPDATE products SET ? WHERE ?",
       [{
-        stock_quantity: --answer.quantity
+        stock_quantity: answer.quantity--
       },
       {
         item_ID: answer.item
       }],
-      function (error) {
-        if (error) throw err;
+      function (err) {
+        if (err) throw err;
+
         console.log("Purchase successful!");
       });
     connection.end();
@@ -76,14 +103,28 @@ function readProducts() {
   });
 };
 
-function validate(id, amount) {
-  inventory = connection.query(
-    "SELECT stock_quantity FROM products WHERE item_ID ?",
-    {
-      item_ID: id
-    });
-  if (amount <= inventory) {
-    console.log("Insufficient quantity");
-    break;
-  }
+function checkPrice(id) {
+  connection.query("SELECT price FROM products WHERE?",
+  {
+    item_ID: id
+  }, function (err, res) {
+    if (err) {
+      throw err;
+    } 
+    var price = res[0].price
+    return price;
+  });
+};
+
+function checkInventory(id) {
+  connection.query("SELECT stock_quantity FROM products WHERE?",
+  {
+    item_ID: id
+  }, function (err, res) {
+    if (err) {
+      throw err;
+    } 
+    inventory = res[0].stock_quantity;
+    return inventory;
+  });
 };
