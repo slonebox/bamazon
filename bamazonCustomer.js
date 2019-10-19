@@ -21,22 +21,18 @@ var connection = mysql.createConnection({
 });
 
 // INITIALIZE CONNECTION, RUN PROGRAM
-connection.connect(function start (err) {
+connection.connect(function start(err) {
   if (err) throw err;
   //List all the products available for purchase
-  readProducts();
-  //Initiate the questions for a user to make a purchase
-  purchaseProducts();
+  readProducts(purchaseProducts);
 });
 
 
 // FUNCTIONS DEFINED
-function start (err) {
+function start(err) {
   if (err) throw err;
   //List all the products available for purchase
-  readProducts();
-  //Initiate the questions for a user to make a purchase
-  purchaseProducts();
+  readProducts(purchaseProducts)
 }
 
 function purchaseProducts() {
@@ -53,27 +49,38 @@ function purchaseProducts() {
       type: "number",
     }
   ]).then(function (answer) {
-    connection.query("SELECT price FROM products WHERE ?",
+    connection.query("SELECT price, stock_quantity FROM products WHERE ?",
       {
         item_ID: answer.item
+      }, function (err, result) {
+
+        //Verifies if there is enough inventory to fulfill the purchase request, and restarts the application if the inventory is insufficient
+        productInventory = result[0].stock_quantity;
+        if (productInventory < answer.quantity) {
+          console.log("Insufficient quantity!");
+          start(err);
+        } else {
+          //Assigns the product price to a variable and calculates the cost of the transaction
+          productPrice = result[0].price;
+          transactionCost = productPrice * purchaseQuantity;
+
+          //Displays all the transaction detail in the console
+          console.log(divider)
+          console.log("TRANSACTION DETAILS     ")
+          console.log("\nProduct ID# " + itemID);
+          console.log("Product Price   : $" + productPrice);
+          console.log("Quantity        :  " + purchaseQuantity);
+          console.log("                 ____________");
+          console.log("Total Cost      : $" + transactionCost);
+          console.log(divider);
+        };
+
+
+
       });
-    console.log("Item ID #: " + answer.item);
-    console.log("Quantity: " + answer.quantity);
 
-    //Verifies if quanity requested exceeds amount in store
-    productInventory = checkInventory(answer.item);
-    if(productInventory < answer.quantity) {
-      console.log("Insufficient quantity!");
-      start(err);
-    };
-
-    //Checks the price of that item, then calculates the total cost of the transaction
-    productPrice = checkPrice(answer.item);
-    transactionCost = (productPrice * answer.quantity);
-    console.log("Product Price   : " + productPrice);
-    console.log("Quanity         : " + answer.quantity);
-    console.log("______________________________");
-    console.log("Transaction Cost: " + transactionCost);
+    var purchaseQuantity = answer.quantity;
+    var itemID = answer.item;
 
     connection.query(
       "UPDATE products SET ? WHERE ?",
@@ -92,7 +99,7 @@ function purchaseProducts() {
   });
 };
 
-function readProducts() {
+function readProducts(cb) {
   connection.query("SELECT * FROM products", function (err, res) {
     if (err) throw err;
     console.log("\nPRODUCTS" + divider);
@@ -100,31 +107,6 @@ function readProducts() {
       console.log("ID #" + res[i].item_ID + ": " + res[i].product_name + " - $" + res[i].price);
     };
     console.log("\n ");
-  });
-};
-
-function checkPrice(id) {
-  connection.query("SELECT price FROM products WHERE?",
-  {
-    item_ID: id
-  }, function (err, res) {
-    if (err) {
-      throw err;
-    } 
-    var price = res[0].price
-    return price;
-  });
-};
-
-function checkInventory(id) {
-  connection.query("SELECT stock_quantity FROM products WHERE?",
-  {
-    item_ID: id
-  }, function (err, res) {
-    if (err) {
-      throw err;
-    } 
-    inventory = res[0].stock_quantity;
-    return inventory;
+    cb();
   });
 };
