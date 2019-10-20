@@ -73,28 +73,29 @@ function purchaseProducts() {
           console.log("                 ____________");
           console.log("Total Cost      : $" + transactionCost);
           console.log(divider);
+          console.log("Purchase successful!\n");
         };
 
 
 
       });
 
+    //Stores user inputs in variables for use in callback functions
     var purchaseQuantity = answer.quantity;
     var itemID = answer.item;
 
-    connection.query(
-      "UPDATE products SET ? WHERE ?",
-      [{
-        stock_quantity: answer.quantity--
-      },
-      {
-        item_ID: answer.item
-      }],
-      function (err) {
-        if (err) throw err;
+    // connection.query(
+    //   "UPDATE products SET ? WHERE ?",
+    //   [{
+    //     stock_quantity: answer.quantity--
+    //   },
+    //   {
+    //     item_ID: answer.item
+    //   }],
+    //   function (err) {
+    //     if (err) throw err;
+    //   });
 
-        console.log("Purchase successful!");
-      });
     connection.end();
   });
 };
